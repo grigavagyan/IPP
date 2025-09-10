@@ -1,4 +1,4 @@
-IPP - Company/Employee Management API
+IPP - Company-Employee Management API
 
 This is a .NET 9 Web API project using Clean Architecture with JWT authentication. The API supports managing Companies, Employees, Projects, and Assignments.
 
@@ -66,30 +66,49 @@ API ENDPOINTS
 COMPANIES
 
 Method	 Route	               Roles	   Description
+
 GET	     /api/companies	       Auth	     Get list of companies (paginated)
+
 GET	     /api/companies/{id}	 Auth	     Get a company by ID
+
 POST	   /api/companies	       Admin	   Create a new company
+
 PUT	     /api/companies/{id}	 Admin	   Update a company
+
 DELETE	 /api/companies/{id}	 Admin	   Delete a company (?force=true for cascade)
 
 EMPLOYEES
 
 Method	  Route	                                            Roles	   Description
+
 GET	      /api/employees	                                  Auth	   Get list of employees
+
 GET	      /api/employees/{id}	                              Auth	   Get employee by ID
+
 POST	    /api/employees	                                  Admin	   Create employee
+
 PUT	      /api/employees/{id}	                              Admin	   Update employee
+
 DELETE	  /api/employees/{id}	                              Admin	   Delete employee
+
 POST	    /api/employees/{id}/projects	                    Admin	   Assign projects to employee
+
 DELETE	  /api/employees/{employeeId}/projects/{projectId}	Admin	   Unassign project
+
 GET	      /api/employees/{employeeId}/projects	            Auth	   Get projects for employee
 
 PROJECTS
 
 Method	  Route	                                Roles	        Description
+
 GET	      /api/projects	                        Auth        	Get list of projects
+
 GET	      /api/projects/{id}	                  Auth	        Get project by ID
+
 POST	    /api/projects	                        Admin       	Create project
+
 PUT	      /api/projects/{id}	                  Admin	        Update project
+
 DELETE  	/api/projects/{id}	                  Admin  	      Delete project
+
 GET	      /api/projects/{projectId}/employees	  Auth	        Get employees assigned to project
