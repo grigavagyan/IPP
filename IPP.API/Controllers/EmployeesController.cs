@@ -1,8 +1,9 @@
-﻿using Application.Commands.Assignments;
-using Application.Commands.Employees;
-using Application.Interfaces;
-using Application.Queries.Employees;
-using Application.Responses.Projects;
+﻿using Application.Responses.Common;
+using Application.Responses.Employees;
+using IPP.Application.Employees.Commands.Delete;
+using IPP.Application.Employees.Commands.Update;
+using IPP.Application.Employees.Queries.GetEmployees;
+using IPP.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,79 +11,56 @@ using Microsoft.AspNetCore.Mvc;
 [Route("api/[controller]")]
 public class EmployeesController : ControllerBase
 {
-    private readonly IEmployeeService _employeeService;
-    private readonly IAssignmentService _assignmentService;
-    public EmployeesController(IEmployeeService employeeService, IAssignmentService assignmentService)
+    private readonly ICommandDispatcher _commandDispatcher;
+    private readonly IQueryDispatcher _queryDispatcher;
+    public EmployeesController(
+        ICommandDispatcher commandDispatcher,
+        IQueryDispatcher queryDispatcher
+        )
     {
-        _employeeService = employeeService;
-        _assignmentService = assignmentService;
+        _commandDispatcher = commandDispatcher;
+        _queryDispatcher = queryDispatcher;
     }
 
-    [Authorize]
     [HttpGet]
-    public async Task<IActionResult> Get([FromQuery] GetEmployeesQuery query)
-        => Ok(await _employeeService.GetEmployeesAsync(query));
-
     [Authorize]
+    public async Task<IActionResult> Get([FromQuery] GetEmployeesQuery query)
+    {
+        var response = await _queryDispatcher.Dispatch<GetEmployeesQuery, PagedResponse<EmployeeResponse>>(query);
+        return Ok(response);
+    }
+
     [HttpGet("{id}")]
+    [Authorize]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var emp = await _employeeService.GetEmployeeByIdAsync(new GetEmployeeByIdQuery { Id = id });
+        var emp = await _queryDispatcher.Dispatch<GetEmployeeByIdQuery, EmployeeResponse>(new GetEmployeeByIdQuery { Id = id });
         return emp == null ? NotFound() : Ok(emp);
     }
 
-    [Authorize(Roles = "Admin")]
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] CreateEmployeeCommand command)
     {
-        var emp = await _employeeService.CreateEmployeeAsync(command);
-        return CreatedAtAction(nameof(GetById), new { id = emp.Id }, emp);
+        var response = await _commandDispatcher.Dispatch<CreateEmployeeCommand, EmployeeResponse>(command);
+        return Ok(response);
     }
 
-    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmployeeCommand command)
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Update([FromBody] UpdateEmployeeCommand command)
     {
-        command.Id = id;
-        var emp = await _employeeService.UpdateEmployeeAsync(command);
-        return emp == null ? NotFound() : Ok(emp);
+        var response = await _commandDispatcher.Dispatch<UpdateEmployeeCommand, EmployeeResponse>(command);
+        return response == null ? NotFound() : Ok(response);
     }
 
-    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var success = await _employeeService.DeleteEmployeeAsync(new DeleteEmployeeCommand { Id = id });
-        return success ? NoContent() : NotFound();
-    }
+        var command = new DeleteEmployeeCommand { Id = id };
 
-    [Authorize(Roles = "Admin")]
-    [HttpPost("{employeeId}/projects")]
-    public async Task<ActionResult<List<EmployeeProjectResponse>>> AssignProjects(
-    Guid employeeId,
-    [FromBody] List<Guid> projectIds)
-    {
-        var result = await _assignmentService.AssignProjectsToEmployeeAsync(
-            new AssignProjectsToEmployeeCommand { EmployeeId = employeeId, ProjectIds = projectIds });
-        return Ok(result);
-    }
-
-    [Authorize(Roles = "Admin")]
-    [HttpDelete("{employeeId}/projects/{projectId}")]
-    public async Task<IActionResult> UnassignProject(Guid employeeId, Guid projectId)
-    {
-        var result = await _assignmentService.UnassignProjectFromEmployeeAsync(
-            new UnassignProjectFromEmployeeCommand { EmployeeId = employeeId, ProjectId = projectId });
-
-        return result ? NoContent() : NotFound();
-    }
-
-    [Authorize]
-    [HttpGet("{employeeId}/projects")]
-    public async Task<ActionResult<List<ProjectResponse>>> GetProjectsForEmployee(Guid employeeId)
-    {
-        var result = await _assignmentService.GetProjectsForEmployeeAsync(
-            new GetProjectsForEmployeeQuery { EmployeeId = employeeId });
-        return Ok(result);
+        var response = await _commandDispatcher.Dispatch<DeleteEmployeeCommand, bool>(command);
+        return response ? NoContent() : NotFound();
     }
 }

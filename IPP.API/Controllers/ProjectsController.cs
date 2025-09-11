@@ -1,9 +1,11 @@
-﻿using Application.Interfaces;
-using Application.Projects.Commands;
-using Application.Projects.Queries;
-using Application.Responses.Common;
-using Application.Responses.Employees;
+﻿using Application.Responses.Common;
 using Application.Responses.Projects;
+using IPP.Application.Interfaces;
+using IPP.Application.Projects.Commands.Create;
+using IPP.Application.Projects.Commands.Delete;
+using IPP.Application.Projects.Commands.Update;
+using IPP.Application.Projects.Queries.GetProjectById;
+using IPP.Application.Projects.Queries.GetProjects;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,65 +13,56 @@ using Microsoft.AspNetCore.Mvc;
 [ApiController]
 public class ProjectsController : ControllerBase
 {
-    private readonly IProjectService _projectService;
-    private readonly IAssignmentService _assignmentService;
+    private readonly ICommandDispatcher _commandDispatcher;
+    private readonly IQueryDispatcher _queryDispatcher;
 
-    public ProjectsController(IProjectService projectService, IAssignmentService assignmentService)
+    public ProjectsController(
+        ICommandDispatcher commandDispatcher,
+        IQueryDispatcher queryDispatcher
+        )
     {
-        _projectService = projectService;
-        _assignmentService = assignmentService;
+        _commandDispatcher = commandDispatcher;
+        _queryDispatcher = queryDispatcher;
     }
 
-    [Authorize]
     [HttpGet]
+    [Authorize]
     public async Task<ActionResult<PagedResponse<ProjectResponse>>> Get([FromQuery] GetProjectsQuery query)
     {
-        var projects = await _projectService.GetProjectsAsync(query);
-        return Ok(projects);
+        var response = await _queryDispatcher.Dispatch<GetProjectsQuery, ProjectResponse>(query);
+        return Ok(response);
     }
 
-    [Authorize]
     [HttpGet("{id}")]
+    [Authorize]
     public async Task<ActionResult<ProjectResponse>> GetById(Guid id)
     {
-        var project = await _projectService.GetProjectByIdAsync(new GetProjectByIdQuery { Id = id });
-        if (project == null) return NotFound();
-        return Ok(project);
+        var response = await _queryDispatcher.Dispatch<GetProjectByIdQuery, ProjectResponse>(new GetProjectByIdQuery { Id = id });
+        return Ok(response);
     }
 
-    [Authorize(Roles = "Admin")]
     [HttpPost]
-    public async Task<ActionResult<ProjectResponse>> Create(CreateProjectCommand command)
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ProjectResponse>> Create([FromBody] CreateProjectCommand command)
     {
-        var project = await _projectService.CreateProjectAsync(command);
-        return CreatedAtAction(nameof(GetById), new { id = project.Id }, project);
+        var response = await _commandDispatcher.Dispatch<CreateProjectCommand, ProjectResponse>(command);
+        return Ok(response);
     }
 
-    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
-    public async Task<ActionResult<ProjectResponse>> Update(Guid id, UpdateProjectCommand command)
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ProjectResponse>> Update([FromBody] UpdateProjectCommand command)
     {
-        if (id != command.Id) return BadRequest();
-        var project = await _projectService.UpdateProjectAsync(command);
-        if (project == null) return NotFound();
-        return Ok(project);
+        var response = await _commandDispatcher.Dispatch<UpdateProjectCommand, ProjectResponse>(command);
+        return Ok(response);
     }
 
-    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var deleted = await _projectService.DeleteProjectAsync(new DeleteProjectCommand { Id = id });
-        if (!deleted) return NotFound();
-        return NoContent();
-    }
-
-    [Authorize]
-    [HttpGet("{projectId}/employees")]
-    public async Task<ActionResult<List<EmployeeResponse>>> GetEmployeesForProject(Guid projectId)
-    {
-        var result = await _assignmentService.GetEmployeesForProjectAsync(
-            new GetEmployeesForProjectQuery { ProjectId = projectId });
-        return Ok(result);
+        var response = await _commandDispatcher.Dispatch<DeleteProjectCommand, bool>(new DeleteProjectCommand { Id = id });
+        if (!response) return NotFound();
+        return Ok(response);
     }
 }

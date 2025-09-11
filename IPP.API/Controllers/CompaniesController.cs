@@ -1,6 +1,11 @@
-﻿using Application.Commands.Companies;
-using Application.Interfaces;
-using Application.Queries.Companies;
+﻿using Application.Responses.Common;
+using Application.Responses.Companies;
+using IPP.Application.Companies.Commands.Create;
+using IPP.Application.Companies.Commands.Delete;
+using IPP.Application.Companies.Commands.Update;
+using IPP.Application.Companies.Queries.GetCompanies;
+using IPP.Application.Companies.Queries.GetCompanyById;
+using IPP.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,48 +15,59 @@ namespace IPP.API.Controllers;
 [Route("api/[controller]")]
 public class CompaniesController : ControllerBase
 {
-    private readonly ICompanyService _service;
+    private readonly ICommandDispatcher _commandDispatcher;
+    private readonly IQueryDispatcher _queryDispatcher;
 
-    public CompaniesController(ICompanyService service)
+    public CompaniesController(ICommandDispatcher commandDispatcher, IQueryDispatcher queryDispatcher)
     {
-        _service = service;
+        _commandDispatcher = commandDispatcher;
+        _queryDispatcher = queryDispatcher;
     }
 
-    [Authorize]
     [HttpGet]
-    public async Task<IActionResult> Get([FromQuery] GetCompaniesQuery query)
-        => Ok(await _service.GetCompaniesAsync(query));
-
     [Authorize]
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(Guid id)
+    public async Task<IActionResult> Get([FromQuery] GetCompaniesQuery query)
     {
-        var company = await _service.GetCompanyByIdAsync(new GetCompanyByIdQuery { Id = id });
-        return company == null ? NotFound() : Ok(company);
+        var response = await _queryDispatcher.Dispatch<GetCompaniesQuery, PagedResponse<CompanyResponse>>(query);
+        return Ok(response);
     }
 
-    [Authorize(Roles = "Admin")]
+    [HttpGet("{id}")]
+    [Authorize]
+    public async Task<IActionResult> GetById([FromRoute] Guid id)
+    {
+        var response = await _queryDispatcher.Dispatch<GetCompanyByIdQuery, CompanyResponse>(new GetCompanyByIdQuery { Id = id});
+        return response == null ? NotFound() : Ok(response);
+    }
+
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] CreateCompanyCommand command)
     {
-        var result = await _service.CreateCompanyAsync(command);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        var response = await _commandDispatcher.Dispatch<CreateCompanyCommand, CompanyResponse>(command);
+        return Ok(response);
     }
 
-    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCompanyCommand command)
     {
         command.Id = id;
-        var result = await _service.UpdateCompanyAsync(command);
-        return result == null ? NotFound() : Ok(result);
+        var response = await _commandDispatcher.Dispatch<UpdateCompanyCommand, CompanyResponse>(command);
+        return response == null ? NotFound() : Ok(response);
     }
 
-    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(Guid id, [FromQuery] bool force = false)
     {
-        var result = await _service.DeleteCompanyAsync(new DeleteCompanyCommand { Id = id, Force = force });
-        return result ? NoContent() : NotFound();
+        var command = new DeleteCompanyCommand
+        {
+            Id = id,
+            Force = force
+        };
+
+        var response = await _commandDispatcher.Dispatch<DeleteCompanyCommand, bool>(command);
+        return Ok(response);
     }
 }

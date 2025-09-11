@@ -23,12 +23,12 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
+    <PackageReference Include="Scrutor" Version="6.1.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.4" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\IPP.Application\IPP.Application.csproj" />
-    <ProjectReference Include="..\IPP.Domain\IPP.Domain.csproj" />
     <ProjectReference Include="..\IPP.Infrastructure\IPP.Infrastructure.csproj" />
   </ItemGroup>
 
