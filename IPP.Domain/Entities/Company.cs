@@ -7,6 +7,6 @@ public class Company
     public string? Website { get; set; }
     public DateTime CreateDate { get; init; } = DateTime.UtcNow;
 
-    public ICollection<Employee> Employees { get; } = new List<Employee>();
-    public ICollection<Project> Projects { get; } = new List<Project>();
+    public ICollection<Employee> Employees { get; } = [];
+    public ICollection<Project> Projects { get; } = [];
 }

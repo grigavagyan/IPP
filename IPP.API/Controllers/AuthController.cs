@@ -1,11 +1,11 @@
-﻿using IPP.Application.Auth.Commands.Login;
-using IPP.Application.Interfaces;
+﻿using IPP.Application.Auth.Login;
+using IPP.Application.Projects.Interfaces;
 using IPP.Application.Responses.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
-[Route("auth")]
+[Route("[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly ICommandDispatcher _commandDispatcher;
@@ -16,8 +16,9 @@ public class AuthController : ControllerBase
     }
 
     [AllowAnonymous]
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginCommand command)
+    [HttpPost("Login")]
+    public async Task<IActionResult> Login(
+        [FromBody] LoginCommand command)
     {
         if (string.IsNullOrWhiteSpace(command.UserName) || string.IsNullOrWhiteSpace(command.Password))
             return BadRequest("Email and password are required.");

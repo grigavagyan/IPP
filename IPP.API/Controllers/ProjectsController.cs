@@ -1,15 +1,16 @@
 ﻿using Application.Responses.Common;
 using Application.Responses.Projects;
-using IPP.Application.Interfaces;
-using IPP.Application.Projects.Commands.Create;
-using IPP.Application.Projects.Commands.Delete;
-using IPP.Application.Projects.Commands.Update;
-using IPP.Application.Projects.Queries.GetProjectById;
-using IPP.Application.Projects.Queries.GetProjects;
+using IPP.Application.Projects.Create;
+using IPP.Application.Projects.Delete;
+using IPP.Application.Projects.GetProjectById;
+using IPP.Application.Projects.GetProjects;
+using IPP.Application.Projects.Interfaces;
+using IPP.Application.Projects.Update;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
-[Route("api/[controller]")]
+[Route("[controller]")]
 [ApiController]
 public class ProjectsController : ControllerBase
 {
@@ -27,7 +28,8 @@ public class ProjectsController : ControllerBase
 
     [HttpGet]
     [Authorize]
-    public async Task<ActionResult<PagedResponse<ProjectResponse>>> Get([FromQuery] GetProjectsQuery query)
+    public async Task<ActionResult<PagedResponse<ProjectResponse>>> Get(
+        [FromQuery] GetProjectsQuery query)
     {
         var response = await _queryDispatcher.Dispatch<GetProjectsQuery, ProjectResponse>(query);
         return Ok(response);
@@ -35,7 +37,8 @@ public class ProjectsController : ControllerBase
 
     [HttpGet("{id}")]
     [Authorize]
-    public async Task<ActionResult<ProjectResponse>> GetById(Guid id)
+    public async Task<ActionResult<ProjectResponse>> GetById(
+        [Required] Guid id)
     {
         var response = await _queryDispatcher.Dispatch<GetProjectByIdQuery, ProjectResponse>(new GetProjectByIdQuery { Id = id });
         return Ok(response);
@@ -43,23 +46,26 @@ public class ProjectsController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<ProjectResponse>> Create([FromBody] CreateProjectCommand command)
+    public async Task<ActionResult<ProjectResponse>> Create(
+        [FromBody] CreateProjectCommand command)
     {
         var response = await _commandDispatcher.Dispatch<CreateProjectCommand, ProjectResponse>(command);
         return Ok(response);
     }
 
-    [HttpPut("{id}")]
+    [HttpPut]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<ProjectResponse>> Update([FromBody] UpdateProjectCommand command)
+    public async Task<ActionResult<ProjectResponse>> Update(
+        [FromBody] UpdateProjectCommand command)
     {
         var response = await _commandDispatcher.Dispatch<UpdateProjectCommand, ProjectResponse>(command);
         return Ok(response);
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Delete(Guid id)
+    public async Task<IActionResult> Delete(
+        [Required] Guid id)
     {
         var response = await _commandDispatcher.Dispatch<DeleteProjectCommand, bool>(new DeleteProjectCommand { Id = id });
         if (!response) return NotFound();

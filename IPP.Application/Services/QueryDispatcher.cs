@@ -1,4 +1,4 @@
-﻿using IPP.Application.Interfaces;
+﻿using IPP.Application.Projects.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace IPP.Application.Services;

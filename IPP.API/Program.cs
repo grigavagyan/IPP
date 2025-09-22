@@ -1,6 +1,9 @@
-using IPP.Application.Interfaces;
+using FluentValidation;
+using IPP.Application.Exceptions;
+using IPP.Application.Projects.Interfaces;
 using IPP.Application.Services;
-using IPP.Infrastructure.Persistence;
+using IPP.Infrastructure;
+using IPP.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -10,9 +13,10 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//builder.Services.AddSingleton<IAuthService, AuthService>();
+builder.Services.AddValidatorsFromAssembly(typeof(CommandDispatcher).Assembly);
 builder.Services.AddScoped<ICommandDispatcher, CommandDispatcher>();
 builder.Services.AddScoped<IQueryDispatcher, QueryDispatcher>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 builder.Services.Scan(scan => scan
     .FromAssemblies(
@@ -31,8 +35,6 @@ builder.Services.Scan(scan => scan
     .AsImplementedInterfaces()
     .WithScopedLifetime()
 );
-
-
 
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -70,14 +72,13 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Company–Employee Management API",
         Version = "v1",
-        Description = "API documentation for my project",
+        Description = "Project is made by Grigor Avagyan",
         Contact = new OpenApiContact
         {
-            Name = "Your Name",
-            Email = "your@email.com"
+            Name = "Grigor Avagyan",
+            Email = "grigor.avagyan@actualsolutions.com"
         }
     });
-    // Add JWT authentication support in Swagger
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -102,25 +103,6 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
-//builder.Services.AddSwaggerGen(c =>
-//{
-//    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Company–Employee Management API", Version = "v1" });
-
-//    var jwtScheme = new OpenApiSecurityScheme
-//    {
-//        Name = "Authorization",
-//        Description = "Enter 'Bearer {token}'",
-//        In = ParameterLocation.Header,
-//        Type = SecuritySchemeType.Http,
-//        Scheme = "bearer",
-//        BearerFormat = "JWT"
-//    };
-//    c.AddSecurityDefinition("Bearer", jwtScheme);
-//    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-//    {
-//        [jwtScheme] = new string[] { }
-//    });
-//});
 
 var app = builder.Build();
 
@@ -130,10 +112,24 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+//app.Use(async (context, next) =>
+//{
+//    try
+//    {
+//        await next();
+//    }
+//    catch (NotFoundException ex)
+//    {
+//        context.Response.StatusCode = StatusCodes.Status404NotFound;
+//        await context.Response.WriteAsJsonAsync(new { message = ex.Message });
+//    }
+//});
 
 app.MapControllers();
 
