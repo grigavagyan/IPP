@@ -16,11 +16,7 @@ public class LoginCommandHandler : ICommandHandler<LoginCommand, LoginResponse>
     public LoginCommandHandler(IConfiguration config)
     {
         _config = config;
-        _users = new List<InMemoryUser>
-        {
-            new InMemoryUser { Email = "admin@demo.com", Password = "Pass@123", Role = "Admin", Name = "Admin" },
-            new InMemoryUser { Email = "user@demo.com",  Password = "Pass@123", Role = "User",  Name = "User" }
-        };
+        _users = _config.GetSection("Users").Get<List<InMemoryUser>>();
     }
 
     public async Task<LoginResponse> Handle(LoginCommand command, CancellationToken cancellationToken)
